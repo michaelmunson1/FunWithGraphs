@@ -63,17 +63,18 @@ def construct_overlap_graph(kmers_to_reads, reads, k):
         #print(len(r_suffix))
         for s in kmers_to_reads[r_suffix]:     #  this suffix should already be present in kmers_to_reads
             if r != s:          # check for read equality, *** DON'T include these ***
-                # overlap_length = overlap(r,s,k)    # suffix of r (length >= k) occurs as prefix of s
-
-                # if overlap_length not in overlap_length_dict:
-                #     overlap_length_dict[overlap_length] = [(r, s)]
-                # else:
-                #     overlap_length_dict[overlap_length].append((r, s))
-                #
-                # if overlap_length > max_overlap_length:
-                #     max_overlap_length = overlap_length
+                overlap_length = overlap(r,s,k)    # suffix of r (length >= k) occurs as prefix of s
 
                 if overlap_length >= k:
+                    if overlap_length not in overlap_length_dict:       # add to dictionary mapping length
+                    overlap_length_dict[overlap_length] = [(r, s)]
+                else:
+                    overlap_length_dict[overlap_length].append((r, s))
+
+                if overlap_length > max_overlap_length:
+                    max_overlap_length = overlap_length
+
+
                     if found_overlap is False:
                         found_overlap = True
                         num_nodes_with_outgoing_edge += 1
