@@ -48,17 +48,42 @@ def make_kmer_dict(reads, k):
 
 
 # for each read 'a', we find all overlaps containing a suffix of b
-def construct_overlap_graph(kmers_to_reads, reads, k):
+def build_reads_to_overlap_edges_map(kmers_to_reads, reads, k):
+    """
+    Returns reads_to_edges_map, overlap_length_dict, max_overlap_length:
+    reads_to_edges_map: a graph of overlapping reads, stored as a map from reads to two lists, of incoming and outgoing edges,
+    each stored with the length of the overlap.
+
+    overlap_length_dict: maps overlap lengths to read pairs (edges)
+
+    max_overlap_length: for constant-time identification of next reads to merge
+
+    Only creates edges for overlaps of length at least 30.
+
+    :param kmers_to_reads: dict storing the read strings in which each kmer in 'reads' appears
+    :param reads: strings of length 100 bases (A,C,T,G)
+    :param k: shortest overlaps to include in graph
+    """
 
     overlap_length_dict = {}    # map from length of overlap list of nodes with that
     max_length = 0
 
-    graph = []                  # entry (edge) format: ( (src_node, dest_node), overlap_length ),
-                                # where nodes are represented by read strings
-    num_edges = 0
+    for i in xrange(1,101):
+        overlap_length_dict[i] = []
+
+    reads_to_edges_map = {}     # entry format, for read 'r': ([outgoing edges list],  [incoming edges list]) ,
+    # where an entry of the first list is in the form (dest_node, overlap_length),
+    # and an entry of the second list is in the form (src_node, overlap_length),
+    # where nodes are represented by read strings
+
+    #initialize map
+    for r in reads:
+        reads_to_edges_map[r] = ([],[])
+
+    #num_edges = 0
     num_nodes_with_outgoing_edge = 0
     for r in reads:
-        found_overlap = False
+        # found_overlap = False
         r_suffix = r[(-1 * k):]      # ASSUMPTION: (for now) we don't have any reads less than 30 chars long
         #print(len(r_suffix))
         for s in kmers_to_reads[r_suffix]:     #  this suffix should already be present in kmers_to_reads
@@ -66,26 +91,27 @@ def construct_overlap_graph(kmers_to_reads, reads, k):
                 overlap_length = overlap(r,s,k)    # suffix of r (length >= k) occurs as prefix of s
 
                 if overlap_length >= k:
-                    if overlap_length not in overlap_length_dict:       # add to dictionary mapping length
-                    overlap_length_dict[overlap_length] = [(r, s)]
-                else:
-                    overlap_length_dict[overlap_length].append((r, s))
+                    #graph.append(((r, s), overlap_length))
 
-                if overlap_length > max_overlap_length:
-                    max_overlap_length = overlap_length
+                    reads_to_edges_map[r][0].append((s, overlap_length))
+                    reads_to_edges_map[s][1].append((r, overlap_length))
 
+                    # num_edges += 1
 
-                    if found_overlap is False:
-                        found_overlap = True
-                        num_nodes_with_outgoing_edge += 1
-                    graph.append(((r, s), overlap_length))       # has_been_traversed = False
-                    num_edges += 1
+                    # if found_overlap is False:
+                    #     found_overlap = True
+                    #     num_nodes_with_outgoing_edge += 1
 
-    print num_edges
-    print num_nodes_with_outgoing_edge
+                    overlap_length_dict[overlap_length].append((r, s))  # map length to edges and store longest overlap
+
+                    if overlap_length > max_overlap_length:
+                        max_overlap_length = overlap_length
+
+    #print num_edges
+    #print num_nodes_with_outgoing_edge
     #print graph
 
-    return graph, overlap_length_dict
+    return reads_to_edges_map, overlap_length_dict, max_overlap_length
 
 
 #reads, qualities = read_fastq('ERR266411_1.for_asm.fastq')      # N.B., no two reads are the same in this file

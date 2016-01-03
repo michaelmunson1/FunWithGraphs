@@ -1,8 +1,26 @@
-import construct_overlap_graph
-from construct_overlap_graph import construct_overlap_graph
-from construct_overlap_graph import make_kmer_dict
+import overlap_graph
+from overlap_graph import build_reads_to_overlap_edges_map
+from overlap_graph import make_kmer_dict
 
 from read_genome import read_fastq
+
+
+def merge_most_overlapping_reads(overlap_length_dict, max_overlap_length):
+    reads_to_merge = overlap_length_dict[max_overlap_length].pop()
+    return reads_to_merge[0], reads_to_merge[1], r + s[max_overlap_length:]
+
+
+def update_reads(reads, r, s, merged_read):
+    reads.remove(r)
+    reads.remove(s)
+    reads.add(merged_read)
+
+def update_edge_maps_and_max_overlap(reads_to_edges_map, overlap_length_dict,
+                                      max_overlap_length,r,s,merged_read, k):
+
+    
+
+    return max_overlap_length  # if no more edges longer than k, return max_overlap_length of '-1'
 
 
 def greedy_scs(reads):
@@ -18,18 +36,20 @@ def greedy_scs(reads):
     # connecting only those reads that overlap at least 30 bases
     k = 30
     kmers_to_reads = make_kmer_dict(reads, k)
-    overlap_edges, overlap_length_dict, max_length, reads_to_edges = construct_overlap_graph(kmers_to_reads, reads, k)
 
-    while len(overlap_edges) > 0:       # while there still remain edges of length > 30
-        edge_to_merge = overlap_length_dict[max_length].pop()
-        r = edge_to_merge[0][0]
-        s = edge_to_merge[0][1]
-        merged_node = r + s[max_length:]
-        reads.remove(r)
-        reads.remove(s)
-        reads.add(merged_node)
+    reads_to_edges_map, overlap_length_dict, max_overlap_length = \
+        build_reads_to_overlap_edges_map(kmers_to_reads, reads, k)
 
-        #
+    while max_overlap_length >= k:
+
+        r, s, merged_read = merge_most_overlapping_reads(overlap_length_dict, max_overlap_length)
+
+        update_reads(reads, r, s, merged_read)
+
+        max_overlap_length = \
+            update_edge_maps_and_max_overlap(reads_to_edges_map, overlap_length_dict,
+                                              max_overlap_length,r,s,merged_read, k)
+
 
 
     # if assembly is not complete with an overlap lower bound of 30, repeat with smaller lower bound
