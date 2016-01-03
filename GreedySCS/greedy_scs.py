@@ -15,10 +15,72 @@ def update_reads(reads, r, s, merged_read):
     reads.remove(s)
     reads.add(merged_read)
 
+
 def update_edge_maps_and_max_overlap(reads_to_edges_map, overlap_length_dict,
                                       max_overlap_length,r,s,merged_read, k):
 
-    
+    # remove (r,s) edge
+    del reads_to_edges_map[r][0][s]
+    del reads_to_edges_map[s][1][r]
+
+    # update (r, q) and (q',r) edges for q,q' != s
+    reads_to_edges_map[merged_read] = [{},{}]
+
+    # could decompose these functions out:
+    # update_r_edges(reads_to_edges_map, r, s, merged_read)
+    # update_s_edges(reads_to_edges_map, s, r, merged_read)
+
+    for q in reads_to_edges_map[r][0]:              # r's outgoing edges
+                                                    # ordering in genome: (r,s,q) - since olap(r,s) > olap(r,q)
+        overlap_length = reads_to_edges_map[r][0][q]
+        del reads_to_edges_map[q][1][r]
+        del overlap_length_dict[overlap_length][r]
+
+        new_overlap_length = reads_to_edges_map[s][0][q]
+
+        del overlap_length_dict[new_overlap_length][s]  # there is a unique entry,
+                                                        # since redundant reads have been discarded
+
+        #del reads_to_edges_map[s][0][q]
+        del reads_to_edges_map[q][1][s]
+
+        reads_to_edges_map[merged_read][0][q] = new_overlap_length
+        reads_to_edges_map[q][1][merged_read] = new_overlap_length
+        overlap_length_dict[new_overlap_length][merged_read] = q
+
+    for q in reads_to_edges_map[r][1]:              # r's incoming edges:
+                                                    # ordering in genome: (q,r,s) - since olap(r,s) > olap(r,q)
+                                                    # thus, q may or may not overlap s
+        new_overlap_length = reads_to_edges_map[q][0][r]
+
+        del overlap_length_dict[new_overlap_length][q]
+
+        del reads_to_edges_map[q][0][r]
+        reads_to_edges_map[q][0][merged_read] = new_overlap_length
+        reads_to_edges_map[merged_read][1][q] = new_overlap_length
+
+        if s in reads_to_edges_map[q][0]:
+            overlap_length = reads_to_edges_map[q][0][s]
+            del overlap_length_dict[overlap_length][q]
+            del reads_to_edges_map[q][0][s]
+
+    for q in reads_to_edges_map[s][0]:              # s' outgoing edges
+                                                    # genome ordering: (r,s,q), where r and q do not overlap
+        new_overlap_length = reads_to_edges_map[s][0][q]
+        del overlap_length_dict[new_overlap_length][s]
+
+        reads_to_edges_map[merged_read][1][q] = new_overlap_length
+        del reads_to_edges_map[q][1][s]
+
+    del reads_to_edges_map[r]
+    del reads_to_edges_map[s]
+
+    if len(overlap_length_dict[max_overlap_length]) > 0:
+        pass
+    else:
+        length = max_overlap_length - 1
+        while len(overlap_length_dict[max_overlap_length]) == 0 and length >= k:
+            length -= 1
 
     return max_overlap_length  # if no more edges longer than k, return max_overlap_length of '-1'
 
@@ -37,7 +99,7 @@ def greedy_scs(reads):
     k = 30
     kmers_to_reads = make_kmer_dict(reads, k)
 
-    reads_to_edges_map, overlap_length_dict, max_overlap_length = \
+    reads_to_edges_map, overlap_length_dict, max_overlap_length = \      # stores overlaps of length k to 99, inclusive
         build_reads_to_overlap_edges_map(kmers_to_reads, reads, k)
 
     while max_overlap_length >= k:
@@ -50,7 +112,7 @@ def greedy_scs(reads):
             update_edge_maps_and_max_overlap(reads_to_edges_map, overlap_length_dict,
                                               max_overlap_length,r,s,merged_read, k)
 
-
+    # TODO: test for completion - how?
 
     # if assembly is not complete with an overlap lower bound of 30, repeat with smaller lower bound
     # (possibly start with 40)

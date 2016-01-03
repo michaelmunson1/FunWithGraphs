@@ -69,16 +69,16 @@ def build_reads_to_overlap_edges_map(kmers_to_reads, reads, k):
     max_length = 0
 
     for i in xrange(1,101):
-        overlap_length_dict[i] = []
+        overlap_length_dict[i] = {}
 
-    reads_to_edges_map = {}     # entry format, for read 'r': ([outgoing edges list],  [incoming edges list]) ,
-    # where an entry of the first list is in the form (dest_node, overlap_length),
-    # and an entry of the second list is in the form (src_node, overlap_length),
+    reads_to_edges_map = {}     # entry format, for read 'r': ([outgoing edges dict],  [incoming edges list]) ,
+    # where an entry of the first list maps dest_node to overlap_length,
+    # and an entry of the second list maps src_node to overlap_length,
     # where nodes are represented by read strings
 
     #initialize map
     for r in reads:
-        reads_to_edges_map[r] = ([],[])
+        reads_to_edges_map[r] = [{}, {}]
 
     #num_edges = 0
     num_nodes_with_outgoing_edge = 0
@@ -93,8 +93,8 @@ def build_reads_to_overlap_edges_map(kmers_to_reads, reads, k):
                 if overlap_length >= k:
                     #graph.append(((r, s), overlap_length))
 
-                    reads_to_edges_map[r][0].append((s, overlap_length))
-                    reads_to_edges_map[s][1].append((r, overlap_length))
+                    reads_to_edges_map[r][0][s] = overlap_length
+                    reads_to_edges_map[s][1][r] = overlap_length
 
                     # num_edges += 1
 
