@@ -6,14 +6,26 @@ from read_genome import read_fastq
 
 
 def merge_most_overlapping_reads(overlap_length_dict, max_overlap_length):
-    reads_to_merge = overlap_length_dict[max_overlap_length].pop()
-    return reads_to_merge[0], reads_to_merge[1], r + s[max_overlap_length:]
+
+    reads_to_merge_dict = overlap_length_dict[max_overlap_length]
+    r = reads_to_merge_dict.keys()[0]
+
+    #print 'length of dict is %d' % len(reads_to_merge_dict)
+
+    print 'max_olen is %d' % max_overlap_length
+    print 'r is %s' % r
+
+    s = reads_to_merge_dict[r]
+
+    print 's is %s' % s
+
+    return r, s, r + s[max_overlap_length:]
 
 
 def update_reads(reads, r, s, merged_read):
     reads.remove(r)
     reads.remove(s)
-    reads.add(merged_read)
+    reads.append(merged_read)
 
 
 def update_edge_maps_and_max_overlap(reads_to_edges_map, overlap_length_dict,
@@ -22,6 +34,7 @@ def update_edge_maps_and_max_overlap(reads_to_edges_map, overlap_length_dict,
     # remove (r,s) edge
     del reads_to_edges_map[r][0][s]
     del reads_to_edges_map[s][1][r]
+    del overlap_length_dict[max_overlap_length][r]
 
     # update (r, q) and (q',r) edges for q,q' != s
     reads_to_edges_map[merged_read] = [{},{}]
@@ -30,23 +43,20 @@ def update_edge_maps_and_max_overlap(reads_to_edges_map, overlap_length_dict,
     # update_r_edges(reads_to_edges_map, r, s, merged_read)
     # update_s_edges(reads_to_edges_map, s, r, merged_read)
 
+
     for q in reads_to_edges_map[r][0]:              # r's outgoing edges
                                                     # ordering in genome: (r,s,q) - since olap(r,s) > olap(r,q)
+
         overlap_length = reads_to_edges_map[r][0][q]
         del reads_to_edges_map[q][1][r]
         del overlap_length_dict[overlap_length][r]
 
         new_overlap_length = reads_to_edges_map[s][0][q]
 
-        del overlap_length_dict[new_overlap_length][s]  # there is a unique entry,
-                                                        # since redundant reads have been discarded
-
-        #del reads_to_edges_map[s][0][q]
-        del reads_to_edges_map[q][1][s]
-
         reads_to_edges_map[merged_read][0][q] = new_overlap_length
         reads_to_edges_map[q][1][merged_read] = new_overlap_length
         overlap_length_dict[new_overlap_length][merged_read] = q
+
 
     for q in reads_to_edges_map[r][1]:              # r's incoming edges:
                                                     # ordering in genome: (q,r,s) - since olap(r,s) > olap(r,q)
@@ -65,9 +75,12 @@ def update_edge_maps_and_max_overlap(reads_to_edges_map, overlap_length_dict,
             del reads_to_edges_map[q][0][s]
 
     for q in reads_to_edges_map[s][0]:              # s' outgoing edges
-                                                    # genome ordering: (r,s,q), where r and q do not overlap
+                                                    # genome ordering: (r,s,q), where r and q may or may not overlap
         new_overlap_length = reads_to_edges_map[s][0][q]
-        del overlap_length_dict[new_overlap_length][s]
+        #print 'new_overlap_length is %d' % new_overlap_length
+        del overlap_length_dict[new_overlap_length][s]     # there is a unique entry,
+                                                           # since redundant reads have been discarded
+
 
         reads_to_edges_map[merged_read][1][q] = new_overlap_length
         del reads_to_edges_map[q][1][s]
@@ -99,8 +112,8 @@ def greedy_scs(reads):
     k = 30
     kmers_to_reads = make_kmer_dict(reads, k)
 
-    reads_to_edges_map, overlap_length_dict, max_overlap_length = \      # stores overlaps of length k to 99, inclusive
-        build_reads_to_overlap_edges_map(kmers_to_reads, reads, k)
+    reads_to_edges_map, overlap_length_dict, max_overlap_length = \
+        build_reads_to_overlap_edges_map(kmers_to_reads, reads, k)   # stores overlaps of length k to 99, inclusive
 
     while max_overlap_length >= k:
 
@@ -110,7 +123,7 @@ def greedy_scs(reads):
 
         max_overlap_length = \
             update_edge_maps_and_max_overlap(reads_to_edges_map, overlap_length_dict,
-                                              max_overlap_length,r,s,merged_read, k)
+                                             max_overlap_length,r,s,merged_read, k)
 
     # TODO: test for completion - how?
 
@@ -120,7 +133,5 @@ def greedy_scs(reads):
 
 
 reads, qualities = read_fastq('ads1_week4_reads.fq')
+#reads = list(set(reads))     # remove duplicates - 14 duplicates
 greedy_scs(reads)
-
-
-

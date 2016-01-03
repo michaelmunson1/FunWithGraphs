@@ -41,7 +41,7 @@ def make_kmer_dict(reads, k):
                 kmers_to_reads[kmer].add(r)
         n += 1
 
-    print(n)
+    print 'number of reads: %d' % n
 
     return kmers_to_reads
 
@@ -82,6 +82,7 @@ def build_reads_to_overlap_edges_map(kmers_to_reads, reads, k):
 
     #num_edges = 0
     num_nodes_with_outgoing_edge = 0
+    max_overlap_length = -1
     for r in reads:
         # found_overlap = False
         r_suffix = r[(-1 * k):]      # ASSUMPTION: (for now) we don't have any reads less than 30 chars long
@@ -93,6 +94,7 @@ def build_reads_to_overlap_edges_map(kmers_to_reads, reads, k):
                 if overlap_length >= k:
                     #graph.append(((r, s), overlap_length))
 
+
                     reads_to_edges_map[r][0][s] = overlap_length
                     reads_to_edges_map[s][1][r] = overlap_length
 
@@ -102,10 +104,12 @@ def build_reads_to_overlap_edges_map(kmers_to_reads, reads, k):
                     #     found_overlap = True
                     #     num_nodes_with_outgoing_edge += 1
 
-                    overlap_length_dict[overlap_length].append((r, s))  # map length to edges and store longest overlap
+                    overlap_length_dict[overlap_length][r] = s  # map length to edges and store longest overlap
+
 
                     if overlap_length > max_overlap_length:
                         max_overlap_length = overlap_length
+
 
     #print num_edges
     #print num_nodes_with_outgoing_edge
