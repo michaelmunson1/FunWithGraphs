@@ -70,7 +70,8 @@ def build_reads_to_overlap_edges_map(kmers_to_reads, uids_to_reads, num_reads, k
     for i in xrange(1, 101):
         overlap_length_dict[i] = {}
 
-    reads_to_edges_map = {}     # entry format, for read 'r': ([outgoing edges dict],  [incoming edges list]) ,
+    reads_to_edges_map = {}
+    # entry format, for read 'r': ([outgoing edges dict],  [incoming edges list]),
     # where an entry of the first list maps dest_node to overlap_length,
     # and an entry of the second list maps src_node to overlap_length,
     # where nodes are represented by read strings
@@ -85,7 +86,7 @@ def build_reads_to_overlap_edges_map(kmers_to_reads, uids_to_reads, num_reads, k
     for r_uid in xrange(num_reads):
         # found_overlap = False
         r = uids_to_reads[r_uid]
-        r_suffix = r[(-1 * k):]      # ASSUMPTION: (for now) we don't have any reads less than 30 chars long
+        r_suffix = r[(-1 * k):]      # ASSUMPTION: (for now) we don't have any reads less than k chars long
         #print(len(r_suffix))
 
         for s_uid in kmers_to_reads[r_suffix]:     #  this suffix should already be present in kmers_to_reads
