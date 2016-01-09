@@ -71,10 +71,10 @@ def build_reads_to_overlap_edges_map(kmers_to_reads, uids_to_reads, num_reads, k
         overlap_length_dict[i] = {}
 
     reads_to_edges_map = {}
-    # entry format, for read 'r': ([outgoing edges dict],  [incoming edges list]),
-    # where an entry of the first list maps dest_node to overlap_length,
-    # and an entry of the second list maps src_node to overlap_length,
-    # where nodes are represented by read strings
+    # Dictionary keyed on read uids. Value: [outgoing edges dict,  incoming edges list],
+    #     where the first element maps destination_nodes to overlap_length,
+    #     the second maps source_nodes to overlap_length,
+    #     and nodes are represented by read uids
 
     #initialize map using unique id's
     for uid in xrange(num_reads):
