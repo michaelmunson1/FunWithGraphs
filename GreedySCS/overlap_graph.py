@@ -16,18 +16,16 @@ def overlap(a, b, min_length=3):
         start += 1  # move just past previous match
 
 
-# a = 'abcd'
-# b = a[1:3]
-# print(type(b))
-
-
-# make a dict of sets keyed on all 30-mers, whose values are the reads which contain that 30-mer
+# make a dict of sets keyed on all k-mers, whose values are the reads which contain that k-mer
 def make_kmer_dict(reads, k):
     kmers_to_reads = {}
+    uids_to_reads = {}
 
-    n = 0
+    num_reads = 0
 
     for r in reads:
+        uids_to_reads[num_reads] = r
+
         for i in xrange(len(r) - k + 1):
             kmer = r[i:i+k]
 
@@ -36,19 +34,20 @@ def make_kmer_dict(reads, k):
             #     print(kmer)
 
             if kmer not in kmers_to_reads:
-                kmers_to_reads[kmer] = set([r])
+                kmers_to_reads[kmer] = set([num_reads])
             else:
-                kmers_to_reads[kmer].add(r)
-        n += 1
+                kmers_to_reads[kmer].add(num_reads)
 
-    print 'number of reads: %d' % n
+        num_reads += 1
 
-    return kmers_to_reads
+    # print 'number of reads: %d' % num_reads
+
+    return kmers_to_reads, uids_to_reads, num_reads
 
 
 
 # for each read 'a', we find all overlaps containing a suffix of b
-def build_reads_to_overlap_edges_map(kmers_to_reads, reads, k):
+def build_reads_to_overlap_edges_map(kmers_to_reads, uids_to_reads, num_reads, k):
     """
     Returns reads_to_edges_map, overlap_length_dict, max_overlap_length:
     reads_to_edges_map: a graph of overlapping reads, stored as a map from reads to two lists, of incoming and outgoing edges,
@@ -68,7 +67,7 @@ def build_reads_to_overlap_edges_map(kmers_to_reads, reads, k):
     overlap_length_dict = {}    # map from length of overlap list of nodes with that
     max_length = 0
 
-    for i in xrange(1,101):
+    for i in xrange(1, 101):
         overlap_length_dict[i] = {}
 
     reads_to_edges_map = {}     # entry format, for read 'r': ([outgoing edges dict],  [incoming edges list]) ,
@@ -76,27 +75,29 @@ def build_reads_to_overlap_edges_map(kmers_to_reads, reads, k):
     # and an entry of the second list maps src_node to overlap_length,
     # where nodes are represented by read strings
 
-    #initialize map
-    for r in reads:
-        reads_to_edges_map[r] = [{}, {}]
+    #initialize map using unique id's
+    for uid in xrange(num_reads):
+        reads_to_edges_map[uid] = [{}, {}]
 
     #num_edges = 0
     num_nodes_with_outgoing_edge = 0
     max_overlap_length = -1
-    for r in reads:
+    for r_uid in xrange(num_reads):
         # found_overlap = False
+        r = uids_to_reads[r_uid]
         r_suffix = r[(-1 * k):]      # ASSUMPTION: (for now) we don't have any reads less than 30 chars long
         #print(len(r_suffix))
-        for s in kmers_to_reads[r_suffix]:     #  this suffix should already be present in kmers_to_reads
+
+        for s_uid in kmers_to_reads[r_suffix]:     #  this suffix should already be present in kmers_to_reads
+            s = uids_to_reads[s_uid]
             if r != s:          # check for read equality, *** DON'T include these ***
-                overlap_length = overlap(r,s,k)    # suffix of r (length >= k) occurs as prefix of s
+                overlap_length = overlap(r, s, k)    # suffix of r (length >= k) occurs as prefix of s
 
                 if overlap_length >= k:
                     #graph.append(((r, s), overlap_length))
 
-
-                    reads_to_edges_map[r][0][s] = overlap_length
-                    reads_to_edges_map[s][1][r] = overlap_length
+                    reads_to_edges_map[r_uid][0][s_uid] = overlap_length
+                    reads_to_edges_map[s_uid][1][r_uid] = overlap_length
 
                     # num_edges += 1
 
@@ -104,8 +105,11 @@ def build_reads_to_overlap_edges_map(kmers_to_reads, reads, k):
                     #     found_overlap = True
                     #     num_nodes_with_outgoing_edge += 1
 
-                    overlap_length_dict[overlap_length][r] = s  # map length to edges and store longest overlap
-
+                    if r_uid not in overlap_length_dict[overlap_length]:
+                        overlap_length_dict[overlap_length][r_uid] = [s_uid]
+                        # we map edge lengths and src nodes to dest nodes, and also store length of longest overlap
+                    else:
+                        overlap_length_dict[overlap_length][r_uid].append(s_uid)
 
                     if overlap_length > max_overlap_length:
                         max_overlap_length = overlap_length
