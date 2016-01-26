@@ -65,15 +65,16 @@ def prims_algorithm_adjacency_matrix(adj_matrix, num_vertices):
         nearest_entry = not_included_heap.dequeue_min()
 
         # occurs when there are multiple connected components
+        new_node_index, nearest_node_index = nearest_entry.m_elem
+
         if nearest_entry.m_priority == inf_priority:
             num_connected_components += 1
             root_index = random.choice(not_included_set)
             mst.roots.append(root_index)
         else:
             mst.total_dist += nearest_entry.m_priority
+            mst.edges[num_connected_components - 1].append((new_node_index, nearest_node_index, nearest_entry.m_priority))
 
-        new_node_index, nearest_node_index = nearest_entry.m_elem
-        mst.edges[num_connected_components - 1].append((new_node_index, nearest_node_index, nearest_entry.m_priority))
         not_included_set -= {new_node_index}
         update_distances(adj_matrix, not_included_set, not_included_heap, node_dict, new_node_index)
 
