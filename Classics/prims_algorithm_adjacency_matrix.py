@@ -7,10 +7,10 @@ Date: January 25, 2016
 Input: A file containing white-space separated real numbers, which are interpreted
 as entries in an adjacency matrix containing distances between nodes.
 
-Uses Prim's Algorithm to find a Minimum Spanning Tree, implemented
+Uses Prim's Algorithm to find the Minimum Spanning Forest, implemented
 with a Fibonacci-heap-backed priority-queue.
 
-Select a start node arbitrarily, and add it to the MST. At each step,
+Select a start node arbitrarily, and add it to the first MS Tree. At each step,
 add to the MST the node nearest to another node already in the MST.
 
 Returns a list of MST's, one for each connected component in the input
